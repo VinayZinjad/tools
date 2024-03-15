@@ -21,7 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import React, { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -35,12 +36,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  GitBranch,
-  GitCommit,
-  Inbox,
-  Trash2
-} from "lucide-react";
+import { GitBranch, GitCommit, Inbox, Trash2 } from "lucide-react";
 
 interface HistoryItem {
   initials: string;
@@ -68,7 +64,7 @@ const FormSchema = z.object({
   }),
 });
 
-const JiraBranchNameGenerator: React.FC = () => {
+const JiraBranchNameGenerator = () => {
   const [history, setHistory] = useState<HistoryItem[]>(
     JSON.parse(localStorage.getItem("jb-history") || "[]")
   );
@@ -153,7 +149,7 @@ const JiraBranchNameGenerator: React.FC = () => {
     saveToLocalStorage(newHistory);
     toast({
       title: `Deleted Successfully`,
-    })
+    });
   }
 
   return (
@@ -245,80 +241,92 @@ const JiraBranchNameGenerator: React.FC = () => {
                   </p>
                 </div>
               )}
-              {history
-                .sort(
-                  (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)
-                )
-                .map((item, index) => (
-                  <Card key={index}>
-                    <CardHeader>
-                      <CardTitle className="text-xl flex justify-between">
-                        {item?.jiraNumber?.toUpperCase() ||
-                          item?.jiraName ||
-                          "Jira"}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant={"ghost"}>
-                              <Trash2 className="opacity-60" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you absolutely sure?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete this item from history.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteItem(item)}
-                              >
-                                Continue
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </CardTitle>
-                      <CardDescription>
-                        {formatDistanceToNow(new Date(item?.timestamp), {
-                          addSuffix: true,
-                        })}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-3">
-                      <p>
-                        <span className="font-semibold">Branch Name:</span>{" "}
-                        {item.branchName}
-                      </p>
-                      <p>
-                        <span className="font-semibold">Commit Message:</span>{" "}
-                        {item.commitMessage}
-                      </p>
-                    </CardContent>
-                    <CardFooter className="gap-2 flex-col md:flex-row flex">
-                      <Button
-                        className="w-full gap-2"
-                        variant={"outline"}
-                        onClick={() => copyToClipboard(item.branchName)}
-                      >
-                        <GitBranch />
-                        Copy Branch Name
-                      </Button>
-                      <Button
-                        variant={"outline"}
-                        className="w-full gap-2"
-                        onClick={() => copyToClipboard(item.commitMessage)}
-                      >
-                        <GitCommit />
-                        Copy Commit Message
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+              <AnimatePresence mode="popLayout">
+                {history
+                  .sort(
+                    (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)
+                  )
+                  .map((item, index) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, x: 100 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 100 }}
+                      key={item.timestamp}
+                    >
+                      <Card key={index}>
+                        <CardHeader>
+                          <CardTitle className="text-xl flex justify-between">
+                            {item?.jiraNumber?.toUpperCase() ||
+                              item?.jiraName ||
+                              "Jira"}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant={"ghost"}>
+                                  <Trash2 className="opacity-60" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you absolutely sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will
+                                    permanently delete this item from history.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteItem(item)}
+                                  >
+                                    Continue
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </CardTitle>
+                          <CardDescription>
+                            {formatDistanceToNow(new Date(item?.timestamp), {
+                              addSuffix: true,
+                            })}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-3">
+                          <p>
+                            <span className="font-semibold">Branch Name:</span>{" "}
+                            {item.branchName}
+                          </p>
+                          <p>
+                            <span className="font-semibold">
+                              Commit Message:
+                            </span>{" "}
+                            {item.commitMessage}
+                          </p>
+                        </CardContent>
+                        <CardFooter className="gap-2 flex-col md:flex-row flex">
+                          <Button
+                            className="w-full gap-2"
+                            variant={"outline"}
+                            onClick={() => copyToClipboard(item.branchName)}
+                          >
+                            <GitBranch />
+                            Copy Branch Name
+                          </Button>
+                          <Button
+                            variant={"outline"}
+                            className="w-full gap-2"
+                            onClick={() => copyToClipboard(item.commitMessage)}
+                          >
+                            <GitCommit />
+                            Copy Commit Message
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </motion.div>
+                  ))}
+              </AnimatePresence>
             </CardContent>
           </Card>
         </div>
